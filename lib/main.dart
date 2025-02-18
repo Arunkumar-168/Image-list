@@ -1,10 +1,8 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart'; // Import GetX
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'Get_Method.dart';
 import 'Photo_Details.dart'; // Import the details screen
 
 void main() {
@@ -16,7 +14,7 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GetMaterialApp( // Use GetMaterialApp instead of MaterialApp
+    return GetMaterialApp(
       debugShowCheckedModeBanner: false,
       home: CircleAnimationScreen(),
     );
@@ -41,7 +39,8 @@ class _CircleAnimationScreenState extends State<CircleAnimationScreen> {
   }
 
   Future<void> fetchPhotos() async {
-    final response = await http.get(Uri.parse('https://reqres.in/api/users?page=2'));
+    final response =
+    await http.get(Uri.parse('https://reqres.in/api/users?page=2'));
     if (response.statusCode == 200) {
       final Map<String, dynamic> jsonResponse = jsonDecode(response.body);
       final List<dynamic> data = jsonResponse['data'];
@@ -57,63 +56,83 @@ class _CircleAnimationScreenState extends State<CircleAnimationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return Scaffold(
+        appBar: AppBar(title: Text('Image List')),
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    List<Photo> firstColumn = List.from(photos); // Unchanged
+    List<Photo> secondColumn = List.from(photos)
+      ..sort((a, b) => a.firstName.compareTo(b.firstName)); // A → Z
+    List<Photo> thirdColumn = List.from(photos)
+      ..sort((b, a) => a.firstName.compareTo(b.firstName)); // Z → A
+
     return Scaffold(
       appBar: AppBar(title: Text('Image List')),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : Padding(
+      body: Padding(
         padding: const EdgeInsets.all(10),
         child: Column(
-          children: List.generate(3, (colIndex) {
-            return Column(
-              children: [
-                SizedBox(
-                  height: 100, // Increased height to fit text
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal, // Enable horizontal scrolling
-                    itemCount: photos.length, // Number of images
-                    itemBuilder: (context, index) {
-                      return GestureDetector(
-                        onTap: () {
-                          Get.to(() => Details(), arguments: {
-                            "id": photos[index].id,
-                            "first_name": photos[index].firstName,
-                            "last_name": photos[index].lastName,
-                            "email": photos[index].email,
-                            "avatar": photos[index].avatar,
-                          });
-                        },
-                        child: Column(
-                          children: [
-                            Container(
-                              width: 60, // Set your desired size
-                              height: 60, // Set your desired size
-                              margin: EdgeInsets.symmetric(horizontal: 5), // Space between images
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                image: DecorationImage(
-                                  image: NetworkImage(photos[index].avatar),
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
-                            SizedBox(height: 5), // Space between image and name
-                            Text(
-                              photos[index].firstName,
-                              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                SizedBox(height: 20), // Space between rows
-              ],
-            );
-          }),
+          children: [
+            buildRow(firstColumn, "Default Order"), // First column (original order)
+            buildRow(secondColumn, "A → Z Order"), // Second column (A → Z)
+            buildRow(thirdColumn, "Z → A Order"), // Third column (Z → A)
+          ],
         ),
       ),
+    );
+  }
+
+  Widget buildRow(List<Photo> photoList, String title) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        SizedBox(
+          height: 100, // Increased height to fit text
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: photoList.length,
+            itemBuilder: (context, index) {
+              return GestureDetector(
+                onTap: () {
+                  Get.to(() => Details(), arguments: {
+                    "id": photoList[index].id,
+                    "first_name": photoList[index].firstName,
+                    "last_name": photoList[index].lastName,
+                    "email": photoList[index].email,
+                    "avatar": photoList[index].avatar,
+                  });
+                },
+                child: Column(
+                  children: [
+                    Container(
+                      width: 60,
+                      height: 60,
+                      margin: EdgeInsets.symmetric(horizontal: 5),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        image: DecorationImage(
+                          image: NetworkImage(photoList[index].avatar),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: 5),
+                    Text(
+                      photoList[index].firstName,
+                      style:
+                      TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+        SizedBox(height: 20),
+      ],
     );
   }
 }
